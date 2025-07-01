@@ -27,5 +27,7 @@ cygload_LDFLAGS=-static -Wl,-e,cygloadCRTStartup -Wl,--disable-high-entropy-va
 
 winchild_SOURCES = \
 	../winsup.api/posix_spawn/winchild.c
+if BUILD_X86_64
 winchild_LDFLAGS=-municode
+endif
 winchild_LDADD=-lntdll

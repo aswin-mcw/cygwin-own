@@ -94,6 +94,8 @@ esac
 
 AC_SUBST(DLL_ENTRY)
 
+AM_CONDITIONAL(BUILD_X86_64, [test $build_cpu = "x86_64"])
+AM_CONDITIONAL(BUILD_AARCH64, [test $build_cpu = "aarch64"])
 AM_CONDITIONAL(TARGET_X86_64, [test $target_cpu = "x86_64"])
 AM_CONDITIONAL(TARGET_AARCH64, [test $target_cpu = "aarch64"])
 
@@ -135,9 +137,9 @@ if test -z "$XMLTO"; then
 fi
 
 if test "x$with_mingw_progs" != "xno"; then
-    AC_CHECK_PROGS(MINGW_CXX, ${target_cpu}-w64-mingw32-g++)
+    AC_CHECK_PROGS(MINGW_CXX, ${build_cpu}-w64-mingw32-g++)
     test -n "$MINGW_CXX" || AC_MSG_ERROR([no acceptable MinGW g++ found in \$PATH])
-    AC_CHECK_PROGS(MINGW_CC, ${target_cpu}-w64-mingw32-gcc)
+    AC_CHECK_PROGS(MINGW_CC, ${build_cpu}-w64-mingw32-gcc)
     test -n "$MINGW_CC" || AC_MSG_ERROR([no acceptable MinGW gcc found in \$PATH])
 fi
 AM_CONDITIONAL(MINGW_PROGS, [test "x$with_mingw_progs" != "xno"])
