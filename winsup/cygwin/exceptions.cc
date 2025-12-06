@@ -1679,6 +1679,8 @@ done:
 
 }
 
+#if defined(__x86_64__)
+
 static void
 altstack_wrapper (int sig, siginfo_t *siginfo, ucontext_t *sigctx,
 		  void (*handler) (int, siginfo_t *, void *))
@@ -1729,6 +1731,8 @@ altstack_wrapper (int sig, siginfo_t *siginfo, ucontext_t *sigctx,
 	teb->Tib.StackLimit = old_limit;
     }
 }
+
+#endif
 
 int
 _cygtls::call_signal_handler ()
