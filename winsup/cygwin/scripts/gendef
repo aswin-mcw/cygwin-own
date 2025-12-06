@@ -461,7 +461,11 @@ _sigbe:
     .seh_endproc
 
 	.global	sigdelayed
+	.seh_proc sigdelayed
 sigdelayed:
+	.seh_endprologue
+	ret
+	.seh_endproc
 _sigdelayed_end:
 	.global _sigdelayed_end
 stabilize_sig_stack:
