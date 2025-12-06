@@ -67,7 +67,7 @@ bool NO_COPY wsock_started;
 /* LoadDLLprime is used to prime the DLL info information, providing an
    additional initialization routine to call prior to calling the first
    function.  */
-#ifdef __x86_64__
+#if defined(__x86_64__)
 #define LoadDLLprime(dllname, init_also, no_resolve_on_fork) __asm__ ("	\n\
 .ifndef " #dllname "_primed				\n\
   .section	.data_cygwin_nocopy,\"w\"		\n\
@@ -83,6 +83,9 @@ bool NO_COPY wsock_started;
   .set		" #dllname "_primed, 1			\n\
 .endif							\n\
 ");
+#elif defined(__aarch64__)
+  // TODO
+  #define LoadDLLprime(dllname, init_also, no_resolve_on_fork) __asm__ ("");
 #else
 #error unimplemented for this target
 #endif
@@ -97,7 +100,7 @@ bool NO_COPY wsock_started;
   LoadDLLfuncEx3(name, dllname, notimp, err, 0)
 
 /* Main DLL setup stuff. */
-#ifdef __x86_64__
+#if defined(__x86_64__)
 #define LoadDLLfuncEx3(name, dllname, notimp, err, no_resolve_on_fork) \
   LoadDLLprime (dllname, dll_func_load, no_resolve_on_fork) \
   __asm__ ("						\n\
@@ -123,6 +126,10 @@ _win32_" #name ":					\n\
   .asciz	\"" #name "\"				\n\
   .text							\n\
 ");
+#elif defined(__aarch64__)
+#define LoadDLLfuncEx3(name, dllname, notimp, err, no_resolve_on_fork) \
+  // TODO
+  LoadDLLprime (dllname, dll_func_load, no_resolve_on_fork) __asm__ ("");
 #else
 #error unimplemented for this target
 #endif
@@ -141,7 +148,7 @@ extern "C" void dll_chain () __asm__ ("dll_chain");
 
 extern "C" {
 
-#ifdef __x86_64__
+#if defined(__x86_64__)
 __asm__ ("								\n\
 	 .section .rdata,\"r\"							\n\
 msg1:									\n\
@@ -203,6 +210,8 @@ dll_chain:								\n\
 	push	%rax		# Restore 'return address'		\n\
 	jmp	*%rdx		# Jump to next init function		\n\
 ");
+#elif defined(__aarch64__)
+  // TODO
 #else
 #error unimplemented for this target
 #endif
@@ -260,7 +269,7 @@ dll_load (HANDLE& handle, PWCHAR name)
 #define RETRY_COUNT 10
 
 /* The standard DLL initialization routine. */
-#ifdef __x86_64__
+#if defined(__x86_64__)
 
 /* On x86_64, we need assembler wrappers for std_dll_init and wsock_init.
    In the x86_64 ABI it's no safe bet that frame[1] (aka 8(%rbp)) contains
@@ -297,6 +306,13 @@ _" #func ":								\n\
 	ret								\n\
 	.seh_endproc							\n\
 ");
+
+INIT_WRAPPER (std_dll_init)
+
+#elif defined(__aarch64__)
+
+// TODO
+#define INIT_WRAPPER(func) __asm__ ("");
 
 INIT_WRAPPER (std_dll_init)
 
@@ -360,7 +376,7 @@ std_dll_init (struct func_info *func)
 
 /* Initialization function for winsock stuff. */
 
-#ifdef __x86_64__
+#if defined(__x86_64__) || defined(__aarch64__)
 /* See above comment preceeding std_dll_init. */
 INIT_WRAPPER (wsock_init)
 #else
