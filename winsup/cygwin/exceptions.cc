@@ -1679,7 +1679,7 @@ done:
 
 }
 
-#if defined(__x86_64__)
+#if defined(__x86_64__) || defined(__aarch64__)
 
 static void
 altstack_wrapper (int sig, siginfo_t *siginfo, ucontext_t *sigctx,
@@ -1873,7 +1873,7 @@ _cygtls::call_signal_handler ()
 
 	  /* In assembler: Save regs on new stack, move to alternate stack,
 	     call thisfunc, revert stack regs. */
-#ifdef __x86_64__
+#if defined(__x86_64__)
 	  /* Clobbered regs: rcx, rdx, r8, r9, r10, r11, rbp, rsp */
 	  __asm__ ("\n\
 		   movq  %[NEW_SP], %%rax  # Load alt stack into rax	\n\
@@ -1911,6 +1911,50 @@ _cygtls::call_signal_handler ()
 		       [FUNC]	"o" (thisfunc),
 		       [WRAPPER] "o" (altstack_wrapper)
 		   : "memory");
+#elif defined(__aarch64__)
+    __asm__ ("\n\
+      mov x9, %[NEW_SP]   // Load alt stack into x9	\n\
+      sub x9, x9, #0x70   // Make room on alt stack	\n\
+            // for clobbered regs and \n\
+            // required shadow space	\n\
+      str   x0, [x9, #0x20]   //   Save clobbered regs	\n\
+      str   x1, [x9, #0x28] \n\
+      str   x2, [x9, #0x30] \n\
+      str   x3, [x9, #0x38] \n\
+      str   x4, [x9, #0x40] \n\
+      str   x5, [x9, #0x48] \n\
+      str   x6, [x9, #0x50] \n\
+      str   x7, [x9, #0x58] \n\
+      str   fp, [x9, #0x60] \n\
+      mov   x10, sp         // copy sp into x10 \n\
+      str   x10, [x9, #0x68] \n\
+      mov   x0, %[SIG]  //  thissig to 1st arg reg  \n\
+      mov   x1, %[SI]       // &thissi to 2nd arg reg  \n\
+      mov   x2, %[CTX]    //  thiscontext to 3rd arg reg	\n\
+      mov   x3, %[FUNC]   //  thisfunc to x3		\n\
+      mov   x4, %[WRAPPER] //  wrapper address to x4	\n\
+      mov   sp, x9  // Move alt stack into rsp	\n\
+      blr   x4  // Call wrapper		\n\
+      mov   x9, sp   //  Restore clobbered register \n\
+      mov   x10, sp // copy sp to x10 \n\
+      ldr  x10, [x9, #0x68] \n\
+      ldr  fp, [x9, #0x60] \n\
+      ldr  x7, [x9, #0x58] \n\
+      ldr  x6, [x9, #0x50] \n\
+      ldr  x5, [x9, #0x48] \n\
+      ldr  x4, [x9, #0x40] \n\
+      ldr  x3, [x9, #0x38] \n\
+      ldr  x2, [x9, #0x30] \n\
+      ldr  x1, [x0, #0x28] \n\
+      ldr  x0, [x9, #0x20] \n"
+
+      : : [NEW_SP]	"r" (new_sp),
+          [SIG]	"r" (thissig),
+          [SI]	"r" (&thissi),
+          [CTX]	"r" (thiscontext),
+          [FUNC]	"r" (thisfunc),
+          [WRAPPER] "r" (altstack_wrapper)
+      : "memory", "x0","x1","x2","x3","x4","x5","x9","x29","x19");
 #else
 #error unimplemented for this target
 #endif
@@ -2030,7 +2074,7 @@ swapcontext (ucontext_t *oucp, const ucontext_t *ucp)
 /* Trampoline function to set the context to uc_link.  The pointer to the
    address of uc_link is stored in a callee-saved register, referenced by
    _MC_uclinkReg from the C code.  If uc_link is NULL, call exit. */
-#ifdef __x86_64__
+#if defined(__x86_64__)
 /* _MC_uclinkReg == %rbx */
 __asm__ ("				\n\
 	.global	__cont_link_context	\n\
@@ -2051,7 +2095,26 @@ __cont_link_context:			\n\
 	nop				\n\
 	.seh_endproc			\n\
 	");
-
+#elif defined(__aarch64__)
+  __asm__ ("				\n\
+	.global	__cont_link_context	\n\
+	.seh_proc __cont_link_context	\n\
+__cont_link_context:			\n\
+	.seh_endprologue		\n\
+  mov  sp, x19 // In aarch64 _MC_uclinkReg is referenced from x19 \n\
+  ldr  x0, [sp] \n\
+  mov x4, sp          // copy sp to a GP register \n\
+  and x4, x4, #0xFFFFFFFFFFFFFFF0  // logical AND with mask \n\
+  sub x4, x4, #0x20  \n\
+  mov sp, x4          // move back to sp \n\
+  tst x0, x0 \n\
+  beq 1f \n\
+  bl setcontext \n\
+  mov x0, #0xff \n\
+1: \n\
+  bl cygwin_exit \n\
+  nop \n\
+	.seh_endproc			\n");
 #else
 #error unimplemented for this target
 #endif
@@ -2098,7 +2161,7 @@ makecontext (ucontext_t *ucp, void (*func) (void), int argc, ...)
        providing pointer values to func without additional porting effort. */
   va_start (ap, argc);
   for (int i = 0; i < argc; ++i)
-#ifdef __x86_64__
+#if defined(__x86_64__)
     switch (i)
       {
       case 0:
@@ -2113,6 +2176,37 @@ makecontext (ucontext_t *ucp, void (*func) (void), int argc, ...)
       case 3:
 	ucp->uc_mcontext.r9 = va_arg (ap, uintptr_t);
 	break;
+      default:
+	sp[i + 1] = va_arg (ap, uintptr_t);
+	break;
+      }
+#elif defined(__aarch64__)
+  switch (i)
+      {
+      case 0:
+	ucp->uc_mcontext.x0 = va_arg (ap, uintptr_t);
+	break;
+      case 1:
+	ucp->uc_mcontext.x1 = va_arg (ap, uintptr_t);
+	break;
+      case 2:
+	ucp->uc_mcontext.x2 = va_arg (ap, uintptr_t);
+	break;
+      case 3:
+	ucp->uc_mcontext.x3 = va_arg (ap, uintptr_t);
+  break;
+      case 4:
+  ucp->uc_mcontext.x4 = va_arg (ap, uintptr_t);
+  break;
+      case 5:
+  ucp->uc_mcontext.x5 = va_arg (ap, uintptr_t);
+	break;
+      case 6:
+  ucp->uc_mcontext.x6 = va_arg (ap, uintptr_t);
+	break;
+      case 7:
+  ucp->uc_mcontext.x7 = va_arg (ap, uintptr_t);
+  break;
       default:
 	sp[i + 1] = va_arg (ap, uintptr_t);
 	break;
