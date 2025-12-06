@@ -66,7 +66,7 @@ int	__locale_mb_cur_max (void);
 
 #define MB_CUR_MAX __locale_mb_cur_max()
 
-void	abort (void) _ATTRIBUTE ((__noreturn__));
+void	abort () _ATTRIBUTE ((__noreturn__));
 int	abs (int);
 #if __BSD_VISIBLE
 __uint32_t arc4random (void);

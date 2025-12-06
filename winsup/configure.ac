@@ -28,8 +28,6 @@ realdirpath() {
 winsup_srcdir="$(realdirpath $srcdir)"
 target_builddir="$(realdirpath ..)"
 
-AC_NO_EXECUTABLES
-
 AC_PROG_INSTALL
 AC_PROG_MKDIR_P
 AC_PROG_CC
