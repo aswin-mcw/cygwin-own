@@ -55,8 +55,10 @@ include %D%/test/Makefile.inc
 
 if HAVE_LIBM_MACHINE_AARCH64
 include %D%/machine/aarch64/Makefile.inc
+if HAVE_FPMATH_H
 include %D%/ld128/Makefile.inc
-endif
+endif # HAVE_FPMATH_H
+endif # HAVE_LIBM_MACHINE_AARCH64
 if HAVE_LIBM_MACHINE_AMDGCN
 include %D%/machine/amdgcn/Makefile.inc
 endif
