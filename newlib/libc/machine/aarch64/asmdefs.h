@@ -68,6 +68,16 @@
 GNU_PROPERTY (FEATURE_1_AND, FEATURE_1_BTI|FEATURE_1_PAC)
 #endif
 
+#ifdef __ELF__
+#define HIDDEN(name) .hidden name
+#define SYMBOL_SIZE(name) .size name, .-name
+#define SYMBOL_TYPE(name, _type) .type name, _type
+#else
+#define HIDDEN(name)
+#define SYMBOL_SIZE(name)
+#define SYMBOL_TYPE(name, _type)
+#endif
+
 #define ENTRY_ALIGN(name, alignment)	\
   .align alignment		    SEP \
   ENTRY_ALIAS(name)		    SEP \

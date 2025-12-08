@@ -64,9 +64,19 @@ TARGET_FILES= \
 	x86_64/wmempcpy.S
 endif
 
+NEWLIB_STRING_DIR= ../../newlib/libc/string
+
 if TARGET_AARCH64
 TARGET_FILES= \
-	aarch64/fastcwd.cc
+	$(NEWLIB_STRING_DIR)/bcopy.c \
+	aarch64/fastcwd.cc \
+	$(NEWLIB_STRING_DIR)/memchr.c \
+	$(NEWLIB_STRING_DIR)/mempcpy.c \
+	$(NEWLIB_STRING_DIR)/memset.c \
+	$(NEWLIB_STRING_DIR)/swab.c \
+	$(NEWLIB_STRING_DIR)/wmemcpy.c \
+	$(NEWLIB_STRING_DIR)/wmemmove.c \
+	$(NEWLIB_STRING_DIR)/wmempcpy.c
 endif
 
 # These objects are included directly into the import library
@@ -629,7 +639,7 @@ $(NEW_DLL_NAME): $(LDSCRIPT) libdll.a $(VERSION_OFILES) $(LIBSERVER)\
 	$(LIBSERVER) \
 	$(newlib_build)/libm.a \
 	$(newlib_build)/libc.a \
-	-lgcc -lkernel32 -lntdll -Wl,-Map,cygwin.map
+	-lgcc -lpdh -lntdll -lonecore -Wl,-Map,cygwin.map
 	@$(MKDIR_P) ${target_builddir}/winsup/testsuite/testinst/bin/
 	$(AM_V_at)$(INSTALL_PROGRAM) $(NEW_DLL_NAME) ${target_builddir}/winsup/testsuite/testinst/bin/$(DLL_NAME)
 

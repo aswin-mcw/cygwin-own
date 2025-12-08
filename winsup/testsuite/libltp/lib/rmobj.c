@@ -162,6 +162,10 @@ rmobj(char *obj, char **errmsg)
 
       /* Get the link count, now that all the entries have been removed */
       if ( lstat(obj, &statbuf) < 0 ) {
+         if ( errno == ENOENT ) {
+            // Returning 0 because the object does not exist.
+            return 0;
+         }
          if ( errmsg != NULL ) {
             sprintf(err_msg, "lstat(%s) failed; errno=%d: %s",
                     obj, errno, SYSERR);
