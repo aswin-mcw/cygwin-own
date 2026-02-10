@@ -1914,7 +1914,7 @@ _cygtls::call_signal_handler ()
 #elif defined(__aarch64__)
     __asm__ ("\n\
       mov x9, %[NEW_SP]   // Load alt stack into x9	\n\
-      sub x9, x9, #0x70   // Make room on alt stack	\n\
+      sub x9, x9, #0x80   // Make room on alt stack	\n\
             // for clobbered regs and \n\
             // required shadow space	\n\
       str   x0, [x9, #0x20]   //   Save clobbered regs	\n\
@@ -1928,6 +1928,7 @@ _cygtls::call_signal_handler ()
       str   fp, [x9, #0x60] \n\
       mov   x10, sp         // copy sp into x10 \n\
       str   x10, [x9, #0x68] \n\
+	    str   x30, [x9, #0x70]  // Save link register	\n\
       mov   x0, %[SIG]  //  thissig to 1st arg reg  \n\
       mov   x1, %[SI]       // &thissi to 2nd arg reg  \n\
       mov   x2, %[CTX]    //  thiscontext to 3rd arg reg	\n\
@@ -1936,7 +1937,7 @@ _cygtls::call_signal_handler ()
       mov   sp, x9  // Move alt stack into rsp	\n\
       blr   x4  // Call wrapper		\n\
       mov   x9, sp   //  Restore clobbered register \n\
-      mov   x10, sp // copy sp to x10 \n\
+	    ldr  x30, [x9, #0x70]  // Restore link register	\n\
       ldr  x10, [x9, #0x68] \n\
       ldr  fp, [x9, #0x60] \n\
       ldr  x7, [x9, #0x58] \n\
@@ -1945,16 +1946,16 @@ _cygtls::call_signal_handler ()
       ldr  x4, [x9, #0x40] \n\
       ldr  x3, [x9, #0x38] \n\
       ldr  x2, [x9, #0x30] \n\
-      ldr  x1, [x0, #0x28] \n\
-      ldr  x0, [x9, #0x20] \n"
-
+      ldr  x1, [x9, #0x28] \n\
+      ldr  x0, [x9, #0x20] \n\
+	    mov   sp, x10           // Restore stack pointer	\n"
       : : [NEW_SP]	"r" (new_sp),
           [SIG]	"r" (thissig),
           [SI]	"r" (&thissi),
           [CTX]	"r" (thiscontext),
           [FUNC]	"r" (thisfunc),
           [WRAPPER] "r" (altstack_wrapper)
-      : "memory", "x0","x1","x2","x3","x4","x5","x9","x29","x19");
+      : "memory", "x0","x1","x2","x3","x4","x5","x6","x7","x9","x10","x29","x30");
 #else
 #error unimplemented for this target
 #endif
